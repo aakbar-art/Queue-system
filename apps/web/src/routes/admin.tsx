@@ -432,8 +432,8 @@ function Kpi({ title, value }: { title: string; value: string }) {
 }
 
 function DoctorDashboard({ session, state, actor, navigate }: { session: any; state: any; actor: string; navigate: any }) {
-  const doctor = state.doctors.find((d: any) => d.userId === session.id);
-  const room = doctor ? state.rooms.find((r: any) => r.doctorId === doctor.id) : null;
+  const user = state.users.find((u: any) => u.id === session.userId);
+  const room = user?.roomId ? state.rooms.find((r: any) => r.id === user.roomId) : null;
 
   const myTickets = state.tickets.filter(
     (t: any) => t.roomId === room?.id && (t.status === "called" || t.status === "in_progress")
