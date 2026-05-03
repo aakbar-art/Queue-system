@@ -50,6 +50,17 @@ function AdminPage() {
 
   if (!session) return null;
 
+  const isAdmin = session.roles.includes("admin");
+  const isFrontDesk = session.roles.includes("front_desk");
+  const isDoctor = session.roles.includes("doctor");
+
+  if (isDoctor && !isAdmin && !isFrontDesk) {
+    return <DoctorDashboard session={session} state={state} actor={actor} navigate={navigate} />;
+  }
+
+  const showAllTabs = isAdmin;
+  const showOperationalTabs = isAdmin || isFrontDesk;
+
   return (
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -153,19 +164,27 @@ function AdminPage() {
 
       <Tabs defaultValue="queue">
         <TabsList className="flex flex-wrap h-auto gap-1">
-          <TabsTrigger value="queue">Queue</TabsTrigger>
-          <TabsTrigger value="approvals">
-            Approvals {pendingApprovals.length ? <Badge className="ml-1">{pendingApprovals.length}</Badge> : null}
-          </TabsTrigger>
-          <TabsTrigger value="rooms">Rooms</TabsTrigger>
-          <TabsTrigger value="fees">Fees</TabsTrigger>
-          <TabsTrigger value="services">Services</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="doctors">Doctors</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-          <TabsTrigger value="reservations">Reservations</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          {showOperationalTabs && (
+            <>
+              <TabsTrigger value="queue">Queue</TabsTrigger>
+              <TabsTrigger value="approvals">
+                Approvals {pendingApprovals.length ? <Badge className="ml-1">{pendingApprovals.length}</Badge> : null}
+              </TabsTrigger>
+              <TabsTrigger value="rooms">Rooms</TabsTrigger>
+              <TabsTrigger value="fees">Fees</TabsTrigger>
+              <TabsTrigger value="services">Services</TabsTrigger>
+              <TabsTrigger value="reservations">Reservations</TabsTrigger>
+              <TabsTrigger value="reports">Reports</TabsTrigger>
+            </>
+          )}
+          {showAllTabs && (
+            <>
+              <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="doctors">Doctors</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            </>
+          )}
         </TabsList>
 
         <TabsContent value="queue">
@@ -411,3 +430,120 @@ function Kpi({ title, value }: { title: string; value: string }) {
     </Card>
   );
 }
+
+function DoctorDashboard({ session, state, actor, navigate }: { session: any; state: any; actor: string; navigate: any }) {
+  const doctor = state.doctors.find((d: any) => d.userId === session.id);
+  const room = doctor ? state.rooms.find((r: any) => r.doctorId === doctor.id) : null;
+
+  const myTickets = state.tickets.filter(
+    (t: any) => t.roomId === room?.id && (t.status === "called" || t.status === "in_progress")
+  );
+  const waiting = useMemo(() => sortWaitingTickets(state.tickets), [state.tickets]);
+
+  return (
+    <main className="mx-auto max-w-6xl space-y-6 px-4 py-8">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Doctor Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            {state.config.clinicName} · signed in as Dr. {session.fullName}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              writeSession(null);
+              navigate({ to: "/login" });
+            }}
+          >
+            Sign out
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <Kpi title="Assigned Room" value={room?.name ?? "None"} />
+        <Kpi title="Active Patients" value={String(myTickets.length)} />
+        <Kpi title="Total Waiting" value={String(waiting.length)} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Queue actions</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-3">
+              <Button
+                onClick={() => callNext(actor, room?.id ?? null)}
+                disabled={state.paused || waiting.length === 0 || !room}
+              >
+                Call next patient
+              </Button>
+              {!room && (
+                <p className="text-sm text-destructive mt-2 w-full">
+                  You are not assigned to a room. Please contact an administrator.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>My Active Patients</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {myTickets.map((t: any) => (
+                <div key={t.id} className="flex flex-col gap-3 rounded-lg border border-border p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-lg">{t.code}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {t.priority} · {t.status.replace("_", " ")}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {t.status === "called" && (
+                      <Button size="sm" onClick={() => setTicketStatus(actor, t.id, "in_progress")}>
+                        Start consult
+                      </Button>
+                    )}
+                    <Button size="sm" variant="secondary" onClick={() => setTicketStatus(actor, t.id, "completed")}>
+                      Complete
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setTicketStatus(actor, t.id, "no_show")}>
+                      No-show
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {myTickets.length === 0 && <p className="text-sm text-muted-foreground">No active patients.</p>}
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Upcoming Waiting (All)</CardTitle>
+          </CardHeader>
+          <CardContent className="max-h-[600px] space-y-2 overflow-auto">
+            {waiting.map((t: any) => (
+              <div key={t.id} className="flex justify-between rounded-lg border border-border p-3 text-sm">
+                <span className="font-semibold">{t.code}</span>
+                <span className="text-muted-foreground">{t.priority}</span>
+              </div>
+            ))}
+            {waiting.length === 0 && <p className="text-sm text-muted-foreground">No waiting tickets.</p>}
+          </CardContent>
+        </Card>
+      </div>
+
+      <p className="text-center text-xs text-muted-foreground">
+        Demo simulation — not for regulated PHI. <Link to="/">Home</Link>
+      </p>
+    </main>
+  );
+}
+
