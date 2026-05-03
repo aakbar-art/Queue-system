@@ -17,3 +17,9 @@
 body {
   @apply bg-background text-foreground antialiased;
 }
+
+/* WhatsApp Web–style chat wallpaper (subtle pattern + tint) */
+.wa-chat-wallpaper {
+  background-color: #efeae2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='%23000' fill-opacity='0.035'%3E%3Cpath d='M0 0h40v40H0V0zm40 40h40v40H40V40z'/%3E%3Cpath d='M40 0h40L0 80V40h40V0zM40 40h40v40H40V40z'/%3E%3C/g%3E%3C/svg%3E");
+}

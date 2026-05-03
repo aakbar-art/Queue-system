@@ -89,13 +89,34 @@ export const ticketSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
+/** Optional machine translations shown alongside voice transcriptions (WhatsApp simulator). */
+export const voiceTranslationsSchema = z.object({
+  en: z.string().optional(),
+  ur: z.string().optional(),
+  sd: z.string().optional(),
+  ps: z.string().optional(),
+  bal: z.string().optional(),
+});
+
+export const voiceMetaSchema = z.object({
+  /** BCP-47 or internal tag for selected speech language */
+  sourceLang: z.string(),
+  /** Filled after user chooses Transcribe; voice note can be sent with audio only first */
+  transcription: z.string().optional().default(""),
+  translations: voiceTranslationsSchema.optional(),
+  /** In-chat playback (data URL). Omitted if clip was too large for storage */
+  audioDataUrl: z.string().optional().nullable(),
+  durationSec: z.number().optional(),
+});
+
 export const chatMessageSchema = z.object({
   id: z.string(),
   role: z.enum(["bot", "user", "system"]),
   text: z.string(),
   at: z.string(),
   attachmentUrl: z.string().optional().nullable(),
-  kind: z.enum(["text", "pdf", "image"]).default("text"),
+  kind: z.enum(["text", "pdf", "image", "voice"]).default("text"),
+  voiceMeta: voiceMetaSchema.optional().nullable(),
 });
 
 export const whatsappSessionSchema = z.object({
@@ -227,6 +248,8 @@ export type Approval = z.infer<typeof approvalSchema>;
 export type FeeLine = z.infer<typeof feeLineSchema>;
 export type WhatsAppSession = z.infer<typeof whatsappSessionSchema>;
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
+export type VoiceMeta = z.infer<typeof voiceMetaSchema>;
+export type VoiceTranslations = z.infer<typeof voiceTranslationsSchema>;
 export type Role = z.infer<typeof roleSchema>;
 export type AdminSection = z.infer<typeof adminSectionSchema>;
 export type ClinicType = z.infer<typeof clinicTypeSchema>;
