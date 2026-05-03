@@ -7,10 +7,17 @@ import {
 /** ~1.3MB base64 — keeps localStorage snapshots usable */
 const MAX_AUDIO_DATA_URL_CHARS = 1_400_000;
 
-/** Whisper `language` token where supported; omit for auto-detect (better for Sindhi/Pashto/Balochi). */
-const WHISPER_LANGUAGE: Partial<Record<VoiceUiLang, string>> = {
+/**
+ * Whisper multilingual decoder language (lowercase English name).
+ * Always set from UI language so the model does not mis-guess (common with tiny/auto-detect).
+ * Balochi has no dedicated Whisper label — Urdu is the closest supported decoder for this app.
+ */
+const WHISPER_LANGUAGE: Record<VoiceUiLang, string> = {
   en: "english",
   ur: "urdu",
+  sd: "sindhi",
+  ps: "pashto",
+  bal: "urdu",
 };
 
 let whisperPipeline: Promise<unknown> | null = null;
@@ -18,8 +25,13 @@ let whisperPipeline: Promise<unknown> | null = null;
 function extractAsrText(output: unknown): string {
   if (typeof output === "string") return output.trim();
   if (output && typeof output === "object") {
-    const o = output as { text?: string; chunks?: Array<{ text?: string }> };
+    const o = output as {
+      text?: string;
+      generated_text?: string;
+      chunks?: Array<{ text?: string }>;
+    };
     if (typeof o.text === "string") return o.text.trim();
+    if (typeof o.generated_text === "string") return o.generated_text.trim();
     if (Array.isArray(o.chunks) && o.chunks.length) {
       return o.chunks
         .map((c) => c.text ?? "")
@@ -53,7 +65,7 @@ export async function startManualMicRecording(maxMs: number): Promise<ManualReco
   const rec = mimeType
     ? new MediaRecorder(stream, {
         mimeType,
-        audioBitsPerSecond: 32000,
+        audioBitsPerSecond: 64000,
       })
     : new MediaRecorder(stream);
 
@@ -143,7 +155,8 @@ async function loadWhisperPipeline() {
       const { pipeline, env } = await import("@xenova/transformers");
       env.useBrowserCache = true;
       env.allowLocalModels = false;
-      return pipeline("automatic-speech-recognition", "Xenova/whisper-tiny", {
+      /** `base` is a strong accuracy jump over `tiny` for non‑English; first load ~2× larger than tiny. */
+      return pipeline("automatic-speech-recognition", "Xenova/whisper-base", {
         quantized: true,
       });
     })();
@@ -169,11 +182,11 @@ export async function transcribeBlobWithWhisper(blob: Blob, voiceUiLang: VoiceUi
     const lang = WHISPER_LANGUAGE[voiceUiLang];
     const opts: Record<string, string | number | boolean> = {
       task: "transcribe",
+      language: lang,
       chunk_length_s: 30,
       stride_length_s: 5,
       return_timestamps: false,
     };
-    if (lang) opts.language = lang;
 
     const out = await transcriber(url, opts);
     const text = extractAsrText(out);
