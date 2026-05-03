@@ -1,0 +1,34 @@
+{
+  "rev": 1,
+  "paused": false,
+  "nextNumber": 1,
+  "receiptSeq": 100,
+  "tickets": [],
+  "patients": [],
+  "sessions": {},
+  "users": [],
+  "rooms": [],
+  "doctors": [],
+  "approvals": [],
+  "fees": [],
+  "reservationCodes": [],
+  "serviceCategories": [],
+  "services": [],
+  "config": {
+    "clinicName": "ArcEdge API Clinic",
+    "brandShort": "ArcEdge",
+    "clinicType": "general",
+    "currency": "USD",
+    "ticketPrefix": "A",
+    "consultationFeeHelp": "API default snapshot",
+    "consultancyTiers": [
+      { "id": "t1", "name": "Standard", "amount": 25, "active": true }
+    ]
+  },
+  "notifications": {
+    "proximityMinutes": 10,
+    "notifyOnIntakeSteps": true,
+    "notifyOnCalled": true
+  },
+  "logs": []
+}

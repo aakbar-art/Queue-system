@@ -1,0 +1,45 @@
+USE [ArcEdge Queue];
+GO
+
+CREATE TABLE [config].[Clinic](
+  [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+  [PortalKey] NVARCHAR(64) NULL,
+  [Name] NVARCHAR(200) NOT NULL,
+  [ClinicType] NVARCHAR(32) NOT NULL,
+  [Currency] NVARCHAR(8) NOT NULL,
+  [TicketPrefix] NVARCHAR(8) NOT NULL
+);
+GO
+
+CREATE UNIQUE INDEX UX_Clinic_PortalKey ON [config].[Clinic]([PortalKey]) WHERE [PortalKey] IS NOT NULL;
+GO
+
+CREATE TABLE [ops].[QueueRuntime](
+  [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+  [PortalKey] NVARCHAR(64) NULL,
+  [NextTicketNumber] INT NOT NULL DEFAULT 1,
+  [ReceiptSequence] INT NOT NULL DEFAULT 100,
+  [Paused] BIT NOT NULL DEFAULT 0
+);
+GO
+
+CREATE TABLE [auth].[AppUser](
+  [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY DEFAULT NEWSEQUENTIALID(),
+  [PortalKey] NVARCHAR(64) NULL,
+  [Username] NVARCHAR(100) NOT NULL,
+  [PasswordHash] NVARCHAR(200) NOT NULL,
+  [FullName] NVARCHAR(200) NOT NULL,
+  [Active] BIT NOT NULL DEFAULT 1
+);
+GO
+
+CREATE UNIQUE INDEX UX_AppUser_Username ON [auth].[AppUser]([Username]);
+CREATE UNIQUE INDEX UX_AppUser_PortalKey ON [auth].[AppUser]([PortalKey]) WHERE [PortalKey] IS NOT NULL;
+GO
+
+CREATE TABLE [auth].[AppUserRole](
+  [UserId] UNIQUEIDENTIFIER NOT NULL REFERENCES [auth].[AppUser]([Id]) ON DELETE CASCADE,
+  [Role] NVARCHAR(32) NOT NULL,
+  PRIMARY KEY ([UserId], [Role])
+);
+GO

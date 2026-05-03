@@ -1,0 +1,13 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "ArcEdge_Dev_1!"
+    ports:
+      - "1433:1433"
+    volumes:
+      - arcedge_sql_data:/var/opt/mssql
+
+volumes:
+  arcedge_sql_data: {}
